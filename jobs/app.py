@@ -7,9 +7,27 @@ app = Flask(__name__)
 def open_connection():
     connection = getattr(g, "_connection", None)
     if connection == None:
-        connection, g._connection = sqlite3.connect(PATH)
+        connection = sqlite3.connect(PATH)
+        g._connection = connection
         connection.row_factory = sqlite3.Row
-    return connection    
+    return connection
+
+def execute_sql(sql, values = (), commit = False, single = False):
+    connection = open_connection()
+    cursor = connection.execute_sql(sql, values)
+    if commit:
+        results = connection.commit()
+    else:
+        results = if cursor.fetchone() if single else cursor.fetchall()
+    cursor.close()
+    return results
+
+@app.teardown_appcontext
+def close_connection(exception):
+    connection = getattr(g, '_connection', None)
+    if connection != None:
+        connection.close()
+
 
 @app.route('/')
 @app.route('/jobs')
